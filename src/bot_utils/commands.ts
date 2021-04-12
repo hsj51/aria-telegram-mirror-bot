@@ -19,7 +19,8 @@ export const commands = {
     AUTHORIZE:      'authorize|a',
     UNAUTHORIZE:    'unauthorize|ua',
     RESTART:        'restart|r',
-    YTDL:           'ytdl|y'
+    YTDL:           'ytdl|y',
+    MEGADL:         'megadl|mdl'
 };
 
 export const commandsAfter: any = {
@@ -43,5 +44,6 @@ export const commandsAfter: any = {
     AUTHORIZE:      '$',
     UNAUTHORIZE:    '$',
     RESTART:        '$',
-    YTDL:           '($| (.+))'
+    YTDL:           '($| (.+))',
+    MEGADL:         '($| (.+))'
 };

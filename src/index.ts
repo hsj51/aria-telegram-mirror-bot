@@ -17,6 +17,7 @@ import checkDiskSpace = require('check-disk-space');
 import gdUtils = require('./drive/gd-utils');
 import { readFile, writeFile } from 'fs-extra';
 import ytdlFn = require('./download_tools/ytdl');
+import megaManager = require('./download_tools/megadl');
 
 const telegraph = require('telegraph-node')
 const ph = new telegraph();
@@ -507,6 +508,29 @@ async function clone(msg: TelegramBot.Message, match: RegExpExecArray) {
     });
   } else {
     msgTools.sendMessage(bot, msg, `Google drive ID could not be found in the provided link`);
+  }
+}
+
+setEventCallback(eventRegex.commandsRegex.megadl, eventRegex.commandsRegexNoName.megadl, async (msg, match) => {
+  if (msgTools.isAuthorized(msg) < 0) {
+    msgTools.sendUnauthorizedMessage(bot, msg);
+  } else {
+    mega(msg, match);
+  }
+});
+
+async function mega(msg: TelegramBot.Message, match: RegExpExecArray) {
+  try {
+    let megaMsg = await bot.sendMessage(msg.chat.id, `Downloading: <code>` + match[4] + `</code>`, {
+      reply_to_message_id: msg.message_id,
+      parse_mode: 'HTML'
+    });
+    await megaManager.megaWrapper(match[4], bot, megaMsg, msg).catch(e => {
+      msgTools.deleteMsg(bot, megaMsg);
+      msgTools.sendMessage(bot, msg, e.message || e, 10000);
+    });
+  } catch (error) {
+    msgTools.sendMessage(bot, msg, error);
   }
 }
 

@@ -97,6 +97,13 @@
   "resolved" "https://registry.npmjs.org/@types/json-schema/-/json-schema-7.0.6.tgz"
   "version" "7.0.6"
 
+"@types/megajs@^0.14.1":
+  "integrity" "sha512-ERxPuLGWm8Dw12eMsAp1PHxn9I3gJjlqvcqncz42NIxOac5tG2QMZEFjN+/51paQuD1J+IYoLeazheOokalJXA=="
+  "resolved" "https://registry.npmjs.org/@types/megajs/-/megajs-0.14.1.tgz"
+  "version" "0.14.1"
+  dependencies:
+    "@types/node" "*"
+
 "@types/mime-types@^2.1.0":
   "integrity" "sha1-nKUs2jY/aZxpRmwqbM2q2RPqenM="
   "resolved" "https://registry.npmjs.org/@types/mime-types/-/mime-types-2.1.0.tgz"
@@ -131,6 +138,13 @@
   "integrity" "sha512-4QQmOF5KlwfxJ5IGXFIudkeLCdMABz03RcUXu+LCb24zmln8QW6aDjuGl4d4XPVLf2j+FnjelHTP7dvceAFbhA=="
   "resolved" "https://registry.npmjs.org/@types/npmlog/-/npmlog-4.1.2.tgz"
   "version" "4.1.2"
+
+"@types/progress-stream@^2.0.1":
+  "integrity" "sha512-NUmoYmspOZRXTEv9NreZ/IFLO4D/iPazNCfj7FKvp6zQ1/XszPw5x8L1PiuMijQZrI9vq16ZBnOJTXxmdtLxCw=="
+  "resolved" "https://registry.npmjs.org/@types/progress-stream/-/progress-stream-2.0.1.tgz"
+  "version" "2.0.1"
+  dependencies:
+    "@types/node" "*"
 
 "@types/request@*":
   "integrity" "sha512-/LO7xRVnL3DxJ1WkPGDQrp4VTV1reX9RkC85mJ+Qzykj2Bdw+mG15aAfDahc76HtknjzE16SX/Yddn6MxVbmGQ=="
@@ -732,7 +746,7 @@
   "resolved" "https://registry.npmjs.org/colors/-/colors-1.4.0.tgz"
   "version" "1.4.0"
 
-"combined-stream@^1.0.6", "combined-stream@~1.0.6":
+"combined-stream@^1.0.6", "combined-stream@^1.0.8", "combined-stream@~1.0.6":
   "integrity" "sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg=="
   "resolved" "https://registry.npmjs.org/combined-stream/-/combined-stream-1.0.8.tgz"
   "version" "1.0.8"
@@ -902,6 +916,11 @@
   "version" "5.3.0"
   dependencies:
     "is-obj" "^2.0.0"
+
+"duplexer@~0.1.1":
+  "integrity" "sha512-jtD6YG370ZCIi/9GTaJKQxWTZD045+4R4hTk/x1UyoqadyJ9x9CgSi1RlVDQF8U2sxLLSnFkCaMihqljHIWgMg=="
+  "resolved" "https://registry.npmjs.org/duplexer/-/duplexer-0.1.2.tgz"
+  "version" "0.1.2"
 
 "duplexer2@~0.1.4":
   "integrity" "sha1-ixLauHjA1p4+eJEFFmKjL8a93ME="
@@ -1999,6 +2018,18 @@
   "resolved" "https://registry.npmjs.org/make-error/-/make-error-1.3.6.tgz"
   "version" "1.3.6"
 
+"megajs@^0.17.2":
+  "integrity" "sha512-zq7Fows6N5HP1UYFkhZ+GfhIAyIzFhCfQ4tEgd90rwhRFLwj9vD7SpYaJ9jvz98ZmqeQSHjKEK2HlWhdBNJm/A=="
+  "resolved" "https://registry.npmjs.org/megajs/-/megajs-0.17.2.tgz"
+  "version" "0.17.2"
+  dependencies:
+    "combined-stream" "^1.0.8"
+    "request" "^2.88.2"
+    "secure-random" "^1.1.2"
+    "stream-combiner" "^0.2.2"
+    "stream-skip" "^1.0.3"
+    "through" "^2.1.0"
+
 "mime-db@1.44.0":
   "integrity" "sha512-/NOTfLrsPBVeH7YtFPgsVWveuL+4SjjYxaQ1xtM1KMFj7HdxlBlxeyNLzhyJVx7r4rZGJAZ/6lkKCitSc/Nmpg=="
   "resolved" "https://registry.npmjs.org/mime-db/-/mime-db-1.44.0.tgz"
@@ -2327,6 +2358,14 @@
   "resolved" "https://registry.npmjs.org/process-nextick-args/-/process-nextick-args-2.0.1.tgz"
   "version" "2.0.1"
 
+"progress-stream@^2.0.0":
+  "integrity" "sha1-+sY6Cz0R3qy7CWmrzJOyFLzhntU="
+  "resolved" "https://registry.npmjs.org/progress-stream/-/progress-stream-2.0.0.tgz"
+  "version" "2.0.0"
+  dependencies:
+    "speedometer" "~1.0.0"
+    "through2" "~2.0.3"
+
 "progress@^2.0.0", "progress@^2.0.3":
   "integrity" "sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA=="
   "resolved" "https://registry.npmjs.org/progress/-/progress-2.0.3.tgz"
@@ -2569,6 +2608,11 @@
   "resolved" "https://registry.npmjs.org/sax/-/sax-1.2.4.tgz"
   "version" "1.2.4"
 
+"secure-random@^1.1.2":
+  "integrity" "sha512-H2bdSKERKdBV1SwoqYm6C0y+9EA94v6SUBOWO8kDndc4NoUih7Dv6Tsgma7zO1lv27wIvjlD0ZpMQk7um5dheQ=="
+  "resolved" "https://registry.npmjs.org/secure-random/-/secure-random-1.1.2.tgz"
+  "version" "1.1.2"
+
 "semver-diff@^3.1.1":
   "integrity" "sha512-GX0Ix/CJcHyB8c4ykpHGIAvLyOwOobtM/8d+TQkAd81/bEjgPHrfba41Vpesr7jX/t8Uh+R3EX9eAS5be+jQYg=="
   "resolved" "https://registry.npmjs.org/semver-diff/-/semver-diff-3.1.1.tgz"
@@ -2662,6 +2706,11 @@
   "resolved" "https://registry.npmjs.org/source-map/-/source-map-0.6.1.tgz"
   "version" "0.6.1"
 
+"speedometer@~1.0.0":
+  "integrity" "sha1-zWccsGdSwivKM3Di8zREC+T8YuI="
+  "resolved" "https://registry.npmjs.org/speedometer/-/speedometer-1.0.0.tgz"
+  "version" "1.0.0"
+
 "sprintf-js@~1.0.2":
   "integrity" "sha1-BOaSb2YolTVPPdAVIDYzuFcpfiw="
   "resolved" "https://registry.npmjs.org/sprintf-js/-/sprintf-js-1.0.3.tgz"
@@ -2687,10 +2736,23 @@
   "resolved" "https://registry.npmjs.org/stealthy-require/-/stealthy-require-1.1.1.tgz"
   "version" "1.1.1"
 
+"stream-combiner@^0.2.2":
+  "integrity" "sha1-rsjLrBd7Vrb0+kec7YwZEs7lKFg="
+  "resolved" "https://registry.npmjs.org/stream-combiner/-/stream-combiner-0.2.2.tgz"
+  "version" "0.2.2"
+  dependencies:
+    "duplexer" "~0.1.1"
+    "through" "~2.3.4"
+
 "stream-shift@^1.0.0":
   "integrity" "sha512-AiisoFqQ0vbGcZgQPY1cdP2I76glaVA/RauYR4G4thNFgkTqr90yXTo4LYX60Jl+sIlPNHHdGSwo01AvbKUSVQ=="
   "resolved" "https://registry.npmjs.org/stream-shift/-/stream-shift-1.0.1.tgz"
   "version" "1.0.1"
+
+"stream-skip@^1.0.3":
+  "integrity" "sha512-2rB0uBiOnYSQwJxJ3wZLher+fz0yyXQxKuKnVTsidHmkqvC8rWZ2AbX50ZVdz7fsL6zkYkqaN/pPD0RldKIbpQ=="
+  "resolved" "https://registry.npmjs.org/stream-skip/-/stream-skip-1.0.3.tgz"
+  "version" "1.0.3"
 
 "string_decoder@^1.1.1", "string_decoder@~1.1.1":
   "integrity" "sha512-n/ShnvDi6FHbbVfviro+WojiFzv+s8MPMHBczVePfUpDJLwoLT0ht1l4YwBCbi8pJAveEEdnkHyPyTP/mzRfwg=="
@@ -2874,7 +2936,7 @@
   "resolved" "https://registry.npmjs.org/text-table/-/text-table-0.2.0.tgz"
   "version" "0.2.0"
 
-"through@^2.3.8":
+"through@^2.1.0", "through@^2.3.8", "through@~2.3.4":
   "integrity" "sha1-DdTJ/6q8NXlgsbckEV1+Doai4fU="
   "resolved" "https://registry.npmjs.org/through/-/through-2.3.8.tgz"
   "version" "2.3.8"
@@ -2901,6 +2963,14 @@
   "version" "4.0.2"
   dependencies:
     "readable-stream" "3"
+
+"through2@~2.0.3":
+  "integrity" "sha512-/mrRod8xqpA+IHSLyGCQ2s8SPHiCDEeQJSep1jqLYeEUClOFG2Qsh+4FU6G9VeqpZnGW/Su8LQGc4YKni5rYSQ=="
+  "resolved" "https://registry.npmjs.org/through2/-/through2-2.0.5.tgz"
+  "version" "2.0.5"
+  dependencies:
+    "readable-stream" "~2.3.6"
+    "xtend" "~4.0.1"
 
 "tiny_request@^1.0.13":
   "integrity" "sha1-gbmXd5R1GdNLDnOsnrb1AnpVL5I="
