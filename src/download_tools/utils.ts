@@ -194,7 +194,7 @@ function generateProgress(p: number): string {
   p = Math.min(Math.max(p, 0), 100);
   var str = '[';
   var cFull = Math.floor(p / 8);
-  var cPart = p % 8 - 1;
+  var cPart = p % 8;
   str += '█'.repeat(cFull);
   if (cPart >= 0) {
     str += PROGRESS_INCOMPLETE[cPart];

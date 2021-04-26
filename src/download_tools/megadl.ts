@@ -9,38 +9,44 @@ import downloadUtils = require('../download_tools/utils');
 import { File } from 'megajs';
 const progressStream = require('progress-stream');
 
-const dlDetails: DlVars = {
-    isTar: false,
-    isUnzip: false,
-    tgUsername: '',
-    gid: randomString(16),
-    downloadDir: '',
-    tgChatId: 0,
-    tgFromId: 0,
-    tgMessageId: 0,
-    tgRepliedUsername: '',
-    isDownloadAllowed: 1,
-    isDownloading: true,
-    isUploading: false,
-    uploadedBytes: 0,
-    uploadedBytesLast: 0,
-    startTime: new Date().getTime(),
-    lastUploadCheckTimestamp: 0,
-    isExtracting: false,
-    extractedFileName: '',
-    extractedFileSize: ''
-};
+let dlDetails:DlVars;
 
 // fileStats = { 0: { name: string, size: number, transferred:number, speed:number , isDownload: boolean } }
 let fileStats:any = {};
 
 // mainObject = { name:string, dlDir:string, realFilePath: string, bot: TelegramBot, tgMsg: TelegramBot.Message, actualMsg: TelegramBot.Message, size:number, transferred:number, files:number, filesdownloaded:number }
-let mainObject:any = { name:'', dlDir:'', realFilePath: '', size:0, speed:0, transferred:0, totalFiles:0, totalDirs:0, filesDownloaded:0, lastStatusMsg:'' };
-let dlStats:any = {};
+let mainObject:any = {};
 
-let progressInterval:any
+let progressBar: NodeJS.Timeout = null;
 
 export async function megaWrapper(url: string, bot: TelegramBot, tgMsg: TelegramBot.Message, actualMsg: TelegramBot.Message) {
+
+    dlDetails = {
+        isTar: false,
+        isUnzip: false,
+        tgUsername: '',
+        gid: randomString(16),
+        downloadDir: '',
+        tgChatId: 0,
+        tgFromId: 0,
+        tgMessageId: 0,
+        tgRepliedUsername: '',
+        isDownloadAllowed: 1,
+        isDownloading: true,
+        isUploading: false,
+        uploadedBytes: 0,
+        uploadedBytesLast: 0,
+        startTime: new Date().getTime(),
+        lastUploadCheckTimestamp: 0,
+        isExtracting: false,
+        extractedFileName: '',
+        extractedFileSize: ''
+    };
+
+    fileStats = {};
+    mainObject = { name:'', dlDir:'', realFilePath: '', size:0, speed:0, transferred:0, totalFiles:0, totalDirs:0, filesDownloaded:0, lastStatusMsg:'' };
+
+
     url = url.trim();
     let finalMessage;
     let item:any;
@@ -49,7 +55,6 @@ export async function megaWrapper(url: string, bot: TelegramBot, tgMsg: Telegram
         item = File.fromURL(url);
     } catch (error) {
         console.error(error.message);
-        //process.exit(1);
         finalMessage = `Failed to start download <code>${url}</code>. ${error.message}`;
 
         msgTools.deleteMsg(bot, tgMsg);
@@ -59,7 +64,6 @@ export async function megaWrapper(url: string, bot: TelegramBot, tgMsg: Telegram
 
     if (!item.key) {
         console.error("ERROR: downloading without an encryption key isn't supported");
-        //process.exit(1);
         finalMessage = `ERROR: downloading without an encryption key isn't supported`;
 
         msgTools.deleteMsg(bot, tgMsg);
@@ -67,10 +71,9 @@ export async function megaWrapper(url: string, bot: TelegramBot, tgMsg: Telegram
         return;
     }
 
-    item.loadAttributes((err: any, object: any ) => {
+    item.loadAttributes( (err: any, object: any ) => {
         if (err) {
             console.error(`Failed to download - ${url}: ${err.message}`);
-            //process.exit(1);
 
             let finalMessage = `Failed to download <code>${url}</code>. ${err.message}`;
             msgTools.deleteMsg(bot, tgMsg);
@@ -83,45 +86,31 @@ export async function megaWrapper(url: string, bot: TelegramBot, tgMsg: Telegram
             mainObject.bot = bot;
             mainObject.tgMsg = tgMsg;
             mainObject.actualMsg = actualMsg;
-            mainObject.name = object['name'];
+            mainObject.name = object.name;
             mainObject.dlDir = uuidv4();
             mainObject.realFilePath = `${constants.ARIA_DOWNLOAD_LOCATION}/${mainObject.dlDir}/${mainObject.name}`;
             let dlDirPath = constants.ARIA_DOWNLOAD_LOCATION + '/' + mainObject.dlDir + '/';
             fs.mkdirSync(dlDirPath, { recursive: true });
+
+            progressBar = setInterval( () => {
+                if (!( mainObject.transferred == mainObject.size || mainObject.totalFiles == mainObject.filesDownloaded )) {
+                    driveTar.updateStatus(dlDetails, mainObject.size, message, mainObject.bot, mainObject.tgMsg);   
+                } else {
+                    console.log('Download Done!')
+                    console.log( mainObject.transferred,'/',mainObject.size, mainObject.filesDownloaded,'/', mainObject.totalFiles )
+                }
+                console.log( mainObject.transferred,'/',mainObject.size, mainObject.filesDownloaded,'/', mainObject.totalFiles )
+            }, constants.STATUS_UPDATE_INTERVAL_MS ? constants.STATUS_UPDATE_INTERVAL_MS : 12000);
+
             downloadFiles(object, dlDirPath);
         }
+        
+        console.log('Download started for all files...');
+        
+
     });
-
-    console.log('Download started for all files...');
-
-    let message = `<b>Downloading:</b> <code>${mainObject.name}</code>`;
-    driveTar.updateStatus(dlDetails, mainObject.size, message, bot, tgMsg);
-
-    let progressInterval = setInterval(() => {
-        driveTar.updateStatus(dlDetails, mainObject.size, message, bot, tgMsg);
-    }, constants.STATUS_UPDATE_INTERVAL_MS ? constants.STATUS_UPDATE_INTERVAL_MS : 12000);
-    let wait = setTimeout(preUpload(), 50000)
-
-    /*
-        status = downloadUtils.generateStatusMessage2(mainObject.size, mainObject.transferred, speed);
-
-        //console.log( mainObject.size, mainObject.transferred)
-        if ( mainObject.totalFiles === mainObject.filesDownloaded || mainObject.transferred === mainObject.size ) {
-            console.log('3')
-            clearInterval(progressInterval);
-            preUpload()
-        }
-
-        if (mainObject.lastStatusMsg !== msg) {
-            mainObject.lastStatusMsg = msg;
-            msgTools.editMessage(bot, tgMsg, msg)catch(e => {
-            console.error('UpdateStatus error: ', e.message);
-        });;
-        }
-    }, constants.STATUS_UPDATE_INTERVAL_MS ? constants.STATUS_UPDATE_INTERVAL_MS : 12000 );
-    */
-
 }
+
 
 function downloadFiles(object: any, path: string) {
     if (object.directory) {
@@ -131,27 +120,29 @@ function downloadFiles(object: any, path: string) {
         path += object.name + '/';
         fs.mkdirSync(path, { recursive: true });
 
-        console.log('Dir:', object.name, '| Contains', object.children.length ,'files/folders');
-
-        object.children.forEach( (file:any) => {
-            downloadFiles(file, path);
-        })
+        if (object.children) {
+            object.children.forEach( (file:any) => {
+                downloadFiles(file, path);
+            });
+        }
     } else {
 
         let downloadStream = object.download();
 
         //targetStat.file[mainObject.totalFiles]={ name: object.name, parent: mainObject.dirCount, size: object.size, isDownloaded: false };
-        fileStats[mainObject.totalFiles]= { name: object.name, size:object.size, transferred:0, isDownloaded: false }
-        mainObject.size += object.size
+        fileStats[mainObject.totalFiles]= { name: object.name, size:object.size, transferred:0, isDownloaded: false };
+        mainObject.size += object.size;
 
         const progressStream = createFileProgressStream(object.name, object.size, mainObject.totalFiles);
         downloadStream = downloadStream.pipe(progressStream);
+        mainObject.totalFiles += 1;
 
-        downloadStream.on('end', (err:any) => {
-           console.error(err)
+        downloadStream.on('end', () => {
+            if (mainObject.transferred == mainObject.size || mainObject.totalFiles == mainObject.filesDownloaded ) {
+                preUpload();
+            } else { console.log('filesDownloaded ', mainObject.filesDownloaded+'/'+mainObject.totalFiles); }
         }).pipe(fs.createWriteStream(path + object.name));
 
-        mainObject.totalFiles += 1
     }
 }
 
@@ -194,31 +185,37 @@ function isDownloadComplete(file: string, targetSize: number) {
 }
 
 /*
-function defaultDownloadCallback (error: any, bot: TelegramBot, tgMsg: TelegramBot.Message, actualMsg: TelegramBot.Message) {
+function defaultDownloadCallback (error: any) {
   if (error) {
     console.error(error)
-    msgTools.deleteMsg(bot, tgMsg);
-    msgTools.sendMessage(bot, actualMsg, `Error: ${error.message}`);
-    //process.exit(1)
+    msgTools.deleteMsg(mainObject.bot, mainObject.tgMsg);
+    msgTools.sendMessage(mainObject.bot, mainObject.actualMsg, `Error: ${error.message}`);
   }
 }
 */
 
 async function preUpload() {
-    console.log('1')
-    while (mainObject.transferred != mainObject.size || mainObject.totalFiles != mainObject.filesDownloaded ) { }
 
-        dlDetails.isUploading = true
-        console.log('2')
-        console.log('Download Complete.')
-        await startUpload( mainObject.dlDir, mainObject.size, mainObject.realFilePath, mainObject.name, mainObject.bot, mainObject.tgMsg, mainObject.actualMsg, `<b>Downloading:</b> <code>${mainObject.name}</code>`);
+    msgTools.editMessage( mainObject.bot, mainObject.tgMsg, `<b>Downloading:</b> <code>${mainObject.name}</code>`);
 
+    dlDetails.isDownloading = false;
+    dlDetails.isUploading = true;
+    dlDetails.uploadedBytes = 0;
+    dlDetails.uploadedBytesLast = 0;
+    dlDetails.lastUploadCheckTimestamp = 0;
+
+    console.log('Download Complete.');
+    await startUpload( mainObject.dlDir, mainObject.size, mainObject.realFilePath, mainObject.name, mainObject.bot, mainObject.tgMsg, mainObject.actualMsg, `<b>Downloading:</b> <code>${mainObject.name}</code>`);
+
+    // Cleanup
+    fileStats = {};
+    mainObject = { name:'', dlDir:'', realFilePath: '', size:0, speed:0, transferred:0, totalFiles:0, totalDirs:0, filesDownloaded:0, lastStatusMsg:'' };
+    clearInterval(progressBar);
+    return;
 }
 
 async function startUpload(dlDir: string, size: number, file: string, filename: string, bot: TelegramBot, tgMsg: TelegramBot.Message, actualMsg: TelegramBot.Message, message: string) {
-    clearInterval(progressInterval);
-
-    message += `\n\n✔Download complete, starting upload...`;
+    message += `\n✔Download complete, starting upload...`;
     msgTools.editMessage(bot, tgMsg, message);
 
     console.log('File size-->', size);
@@ -238,7 +235,7 @@ async function startUpload(dlDir: string, size: number, file: string, filename: 
             msgTools.sendMessage(bot, actualMsg, finalMessage, 10000);
         } else {
             console.log(`Uploaded ${filename}`);
-            if (size) {
+            if (size) {;
                 var fileSizeStr = downloadUtils.formatSize(size);
                 finalMessage = `<b>GDrive Link</b>: <a href="${url}">${filename}</a> (${fileSizeStr})`;
                 if (indexLink && constants.INDEX_DOMAIN) {
@@ -254,6 +251,84 @@ async function startUpload(dlDir: string, size: number, file: string, filename: 
     });
 }
 
+export function getMetadata( url: string, bot: TelegramBot, tgMsg: TelegramBot.Message, actualMsg: TelegramBot.Message ) {
+
+    url = url.trim();
+    let finalMessage;
+    let item:any;
+    let stats:any;
+    let folderCount = 0;
+    let fileCount = 0;
+    let structure = ''
+
+    try {
+        item = File.fromURL(url);
+    } catch (error) {
+        console.error(error.message);
+        finalMessage = `Failed to load <code>${url}</code>. ${error.message}`;
+
+        msgTools.deleteMsg(bot, tgMsg);
+        msgTools.sendMessage(bot, actualMsg, finalMessage);
+        return;
+    }
+
+    if (!item.key) {
+        console.error("ERROR: url without an encryption key isn't supported");
+        finalMessage = `ERROR: url without an encryption key isn't supported`;
+
+        msgTools.deleteMsg(bot, tgMsg);
+        msgTools.sendMessage(bot, actualMsg, finalMessage);
+        return;
+    }
+
+    item.loadAttributes( (err: any, object: any ) => {
+        if (err) {
+            console.error(`Failed to get metadata - ${url}: ${err.message}`);
+
+            let finalMessage = `Failed to get metadata for <code>${url}</code>. ${err.message}`;
+            msgTools.deleteMsg(bot, tgMsg);
+            msgTools.sendMessage(bot, actualMsg, finalMessage, 10000);
+            return;
+        } else {
+            forFolder(object, object.name)
+        }
+    });
+
+    function forFolder(object: any, path:string) {
+        if (object.directory) {
+            path += '/';
+            stats.folder[folderCount] = { name: object.name, realPath:path };
+            if ( object.children != undefined ) {
+                stats.folder[folderCount] = { files:object.children.length }
+                object.children.forEach( (file:any) => {
+                    forFolder(file, path + object.name );
+                });
+            }
+            folderCount += 1;
+        } else {
+            stats.file[fileCount] = { name:object.name, size:object.size, realPath:path };
+            fileCount += 1;
+        }
+    }
+}
+
+/*  mf=`├`   fe=`│`   ef=`└`    ff=`—`.repeat(folderCount + 1) — — — — — ——
+            Sti
+Main Folder\n
+│
+├——folder1
+│  │
+│  └--folder2
+├     
+│
+├
+│
+└
+
+
+
+
+*/
 // gid generator - randomString(16)
 function randomString(len:number) {
     var str = "";
