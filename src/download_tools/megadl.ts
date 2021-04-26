@@ -13,7 +13,7 @@ const dlDetails: DlVars = {
     isTar: false,
     isUnzip: false,
     tgUsername: '',
-    gid: '',
+    gid: randomString(16),
     downloadDir: '',
     tgChatId: 0,
     tgFromId: 0,
@@ -21,25 +21,24 @@ const dlDetails: DlVars = {
     tgRepliedUsername: '',
     isDownloadAllowed: 1,
     isDownloading: true,
-    isUploading: true,
+    isUploading: false,
     uploadedBytes: 0,
     uploadedBytesLast: 0,
-    startTime: 0,
+    startTime: new Date().getTime(),
     lastUploadCheckTimestamp: 0,
     isExtracting: false,
     extractedFileName: '',
     extractedFileSize: ''
 };
 
-// dir:  { 0: { fileName: string, path: string, parent: int (targetStat.dir.[parent]) }}
-// file: { 0: { fileName: string, path: string, parent: int (targetStat.dir.[parent]), size: int (bytes), isDownloaded: boolean, isUploaded: boolean }}
-let targetStat:any = {
-    dir: { },
-    file: { }
-};
+// fileStats = { 0: { name: string, size: number, transferred:number, speed:number , isDownload: boolean } }
+let fileStats:any = {};
 
-let dirCount:any;
-let fileCount=0;
+// mainObject = { name:string, dlDir:string, realFilePath: string, bot: TelegramBot, tgMsg: TelegramBot.Message, actualMsg: TelegramBot.Message, size:number, transferred:number, files:number, filesdownloaded:number }
+let mainObject:any = { name:'', dlDir:'', realFilePath: '', size:0, speed:0, transferred:0, totalFiles:0, totalDirs:0, filesDownloaded:0, lastStatusMsg:'' };
+let dlStats:any = {};
+
+let progressInterval:any
 
 export async function megaWrapper(url: string, bot: TelegramBot, tgMsg: TelegramBot.Message, actualMsg: TelegramBot.Message) {
     url = url.trim();
@@ -53,7 +52,7 @@ export async function megaWrapper(url: string, bot: TelegramBot, tgMsg: Telegram
         //process.exit(1);
         finalMessage = `Failed to start download <code>${url}</code>. ${error.message}`;
 
-        //msgTools.deleteMsg(bot, tgMsg);
+        msgTools.deleteMsg(bot, tgMsg);
         msgTools.sendMessage(bot, actualMsg, finalMessage);
         return;
     }
@@ -63,7 +62,7 @@ export async function megaWrapper(url: string, bot: TelegramBot, tgMsg: Telegram
         //process.exit(1);
         finalMessage = `ERROR: downloading without an encryption key isn't supported`;
 
-        //msgTools.deleteMsg(bot, tgMsg);
+        msgTools.deleteMsg(bot, tgMsg);
         msgTools.sendMessage(bot, actualMsg, finalMessage);
         return;
     }
@@ -72,101 +71,109 @@ export async function megaWrapper(url: string, bot: TelegramBot, tgMsg: Telegram
         if (err) {
             console.error(`Failed to download - ${url}: ${err.message}`);
             //process.exit(1);
-            let finalMessage = `Failed to download <code>${url}</code>. ${err.message}`;
 
+            let finalMessage = `Failed to download <code>${url}</code>. ${err.message}`;
             msgTools.deleteMsg(bot, tgMsg);
             msgTools.sendMessage(bot, actualMsg, finalMessage, 10000);
             return;
         } else {
+            let message = `<b>Downloading:</b> <code>${object.name}</code>`;
+            msgTools.editMessage(bot, tgMsg, message);
 
-        let message = `Downloading: <code>${object.name}</code>`;
-        msgTools.editMessage(bot, tgMsg, message);
-
-        let dlDir = uuidv4();
-        let dlDirPath = constants.ARIA_DOWNLOAD_LOCATION + '/' + dlDir + '/';
-        let realFilePath = `${constants.ARIA_DOWNLOAD_LOCATION}/${dlDir}/${object.name}`;
-        fs.mkdirSync(dlDirPath, { recursive: true });
-
-        let showProgress = object.directory === false ? true : false;
-        downloadFiles(object, dlDir, dlDirPath, realFilePath, bot, tgMsg, actualMsg, showProgress);
-
+            mainObject.bot = bot;
+            mainObject.tgMsg = tgMsg;
+            mainObject.actualMsg = actualMsg;
+            mainObject.name = object['name'];
+            mainObject.dlDir = uuidv4();
+            mainObject.realFilePath = `${constants.ARIA_DOWNLOAD_LOCATION}/${mainObject.dlDir}/${mainObject.name}`;
+            let dlDirPath = constants.ARIA_DOWNLOAD_LOCATION + '/' + mainObject.dlDir + '/';
+            fs.mkdirSync(dlDirPath, { recursive: true });
+            downloadFiles(object, dlDirPath);
         }
     });
+
+    console.log('Download started for all files...');
+
+    let message = `<b>Downloading:</b> <code>${mainObject.name}</code>`;
+    driveTar.updateStatus(dlDetails, mainObject.size, message, bot, tgMsg);
+
+    let progressInterval = setInterval(() => {
+        driveTar.updateStatus(dlDetails, mainObject.size, message, bot, tgMsg);
+    }, constants.STATUS_UPDATE_INTERVAL_MS ? constants.STATUS_UPDATE_INTERVAL_MS : 12000);
+    let wait = setTimeout(preUpload(), 50000)
+
+    /*
+        status = downloadUtils.generateStatusMessage2(mainObject.size, mainObject.transferred, speed);
+
+        //console.log( mainObject.size, mainObject.transferred)
+        if ( mainObject.totalFiles === mainObject.filesDownloaded || mainObject.transferred === mainObject.size ) {
+            console.log('3')
+            clearInterval(progressInterval);
+            preUpload()
+        }
+
+        if (mainObject.lastStatusMsg !== msg) {
+            mainObject.lastStatusMsg = msg;
+            msgTools.editMessage(bot, tgMsg, msg)catch(e => {
+            console.error('UpdateStatus error: ', e.message);
+        });;
+        }
+    }, constants.STATUS_UPDATE_INTERVAL_MS ? constants.STATUS_UPDATE_INTERVAL_MS : 12000 );
+    */
+
 }
 
-function downloadFiles(object: any, dlDir: string, path: string, realFilePath: string, bot: TelegramBot, tgMsg: TelegramBot.Message, actualMsg: TelegramBot.Message, showProgress=false) {
+function downloadFiles(object: any, path: string) {
     if (object.directory) {
-        showProgress=false;
-        targetStat.dir[dirCount]={ name: object.name, path: path + object.name, parent: dirCount };
-        dirCount = dirCount === 'undefined' ? 0 : dirCount + 1;
-        //console.log(object.size);
+
+        mainObject.totalDirs += 1;
+
         path += object.name + '/';
         fs.mkdirSync(path, { recursive: true });
-        console.log('Dir:', object.name, '| Contains', object.children.length ,'files and folders');
-        object.children.forEach( ( file:any, err:any ) => {
-            if (err) console.error(err)
-            downloadFiles(file, dlDir, path, realFilePath, bot, tgMsg, actualMsg, showProgress);
+
+        console.log('Dir:', object.name, '| Contains', object.children.length ,'files/folders');
+
+        object.children.forEach( (file:any) => {
+            downloadFiles(file, path);
         })
     } else {
+
         let downloadStream = object.download();
-        dirCount = dirCount === 'undefined' ? 0 : dirCount;
-        targetStat.file[fileCount]={ name: object.name, parent: dirCount, size: object.size, isDownloaded: false, isUploaded: false };
-        fileCount += 1;
 
-        // Condition separating file and folder links
-        /* Problems: 
-             TG Rate limiting as each file maintains its own status msg
-             Also each file send a separate status msg after upload completion
-         */
-        if (showProgress) {
-            const progressStream = createFileProgressStream(object.name, object.size, dlDir, path, realFilePath, bot, tgMsg, actualMsg);
-            downloadStream = downloadStream.pipe(progressStream);
-            console.log('File:', object.name, '| Size:', fileSize(object.size));
-        } else {
-            let filePath=path.replace(constants.ARIA_DOWNLOAD_LOCATION + '/' + dlDir + '/', '')+'/'
-            console.log('File:', object.name, '| Size:', fileSize(object.size));
+        //targetStat.file[mainObject.totalFiles]={ name: object.name, parent: mainObject.dirCount, size: object.size, isDownloaded: false };
+        fileStats[mainObject.totalFiles]= { name: object.name, size:object.size, transferred:0, isDownloaded: false }
+        mainObject.size += object.size
 
-            //TODO: Remove this if-else condition, once we find a way to upload folders
-            const progressStream = createFileProgressStream(object.name, object.size, dlDir, path, realFilePath, bot, tgMsg, actualMsg);
-            downloadStream = downloadStream.pipe(progressStream);
-            let message = `Downloading: <code>${realFilePath}</code>\n(  File: ${filePath}${object.name} | Size: ${fileSize(object.size)}).${' '.repeat(10)}.`;
-            msgTools.editMessage(bot, tgMsg, message);
-        }
-        downloadStream.on('end', () => {}).pipe(fs.createWriteStream(path + object.name));
-        //console.log(targetStat.file);
+        const progressStream = createFileProgressStream(object.name, object.size, mainObject.totalFiles);
+        downloadStream = downloadStream.pipe(progressStream);
+
+        downloadStream.on('end', (err:any) => {
+           console.error(err)
+        }).pipe(fs.createWriteStream(path + object.name));
+
+        mainObject.totalFiles += 1
     }
 }
 
-function createFileProgressStream (filename: string, length: number, dlDir: string, path: string, realFilePath: string , bot: TelegramBot, tgMsg: TelegramBot.Message, actualMsg: TelegramBot.Message) {
+function createFileProgressStream (filename: string, length: number, index: number) {
 
     const stream = progressStream({
         length,
-        time: constants.STATUS_UPDATE_INTERVAL_MS ? constants.STATUS_UPDATE_INTERVAL_MS : 12000
+        time: 1000
     });
 
-    //console.log('%s: 0% - 0 bytes of %s', filename, fileSize(length));
-
     stream.on('progress', (progress: any) => {
-        let filePath= path.replace(constants.ARIA_DOWNLOAD_LOCATION + '/' + dlDir + '/', '') ==='' ? '': path.replace(constants.ARIA_DOWNLOAD_LOCATION + '/' + dlDir + '/', '') + '/'
-        let message = `Downloading: <code>${filePath}${filename}</code>\n${Math.round(progress.percentage)}% processed ${fileSize(progress.transferred)} of ${fileSize(length)}\nSpeed: ${fileSize(progress.speed)} | ETA: ${progress.eta} s .`;
-        msgTools.editMessage(bot, tgMsg, message);
-
-        /*
-        if (progress.eta === 0) {
-            console.log('Download completed for',filename);
-        }
-        */
+        mainObject.transferred += progress.transferred - fileStats[index]['transferred'];
+        dlDetails.uploadedBytes += progress.transferred - fileStats[index]['transferred'];
+        fileStats[index]['transferred']=progress.transferred;
+        fileStats[index]['speed']=progress.speed;
     });
 
     stream.on('finish', async () => {
-        console.log('Download completed for',filename,'. Uploading...');
-        await startFileUpload(dlDir, realFilePath, filename, bot, tgMsg, actualMsg, `Downloading: <code>${filename}</code>`);
-        /*
-        for (let i=0; i < Object.keys(targetStat.file).length ; i++) {
-            if (targetStat.file[i]['name'] === filename) {
-                await startFileUpload(dlDir, realFilePath, filename, bot, tgMsg, actualMsg, `Downloading: <code>${filename}</code>`);
-            }
-        }*/
+        console.log('Download completed for',filename,index+1);
+        mainObject.filesDownloaded += 1;
+        fileStats[index]['isDownloaded'] = true;
+        //await startUpload(dlDir, realFilePath, filename, bot, tgMsg, actualMsg, `Downloading: <code>${filename}</code>`);
     });
 
     return stream;
@@ -186,20 +193,33 @@ function isDownloadComplete(file: string, targetSize: number) {
     return true;
 }
 
+/*
 function defaultDownloadCallback (error: any, bot: TelegramBot, tgMsg: TelegramBot.Message, actualMsg: TelegramBot.Message) {
   if (error) {
     console.error(error)
-    //msgTools.deleteMsg(bot, tgMsg);
+    msgTools.deleteMsg(bot, tgMsg);
     msgTools.sendMessage(bot, actualMsg, `Error: ${error.message}`);
     //process.exit(1)
   }
 }
+*/
 
-async function startFileUpload(dlDir: string, file: string, filename: string, bot: TelegramBot, tgMsg: TelegramBot.Message, actualMsg: TelegramBot.Message, message: string) {
-    message += `\n\n✔File download complete, starting upload...`;
+async function preUpload() {
+    console.log('1')
+    while (mainObject.transferred != mainObject.size || mainObject.totalFiles != mainObject.filesDownloaded ) { }
+
+        dlDetails.isUploading = true
+        console.log('2')
+        console.log('Download Complete.')
+        await startUpload( mainObject.dlDir, mainObject.size, mainObject.realFilePath, mainObject.name, mainObject.bot, mainObject.tgMsg, mainObject.actualMsg, `<b>Downloading:</b> <code>${mainObject.name}</code>`);
+
+}
+
+async function startUpload(dlDir: string, size: number, file: string, filename: string, bot: TelegramBot, tgMsg: TelegramBot.Message, actualMsg: TelegramBot.Message, message: string) {
+    clearInterval(progressInterval);
+
+    message += `\n\n✔Download complete, starting upload...`;
     msgTools.editMessage(bot, tgMsg, message);
-
-    const { size } = fs.statSync(file);
 
     console.log('File size-->', size);
 
@@ -214,7 +234,6 @@ async function startFileUpload(dlDir: string, file: string, filename: string, bo
         if (uperr) {
             console.error(`Failed to upload - ${filename}: ${uperr}`);
             finalMessage = `Failed to upload <code>${filename}</code> to Drive. ${uperr}`;
-
             msgTools.deleteMsg(bot, tgMsg);
             msgTools.sendMessage(bot, actualMsg, finalMessage, 10000);
         } else {
@@ -233,4 +252,14 @@ async function startFileUpload(dlDir: string, file: string, filename: string, bo
         msgTools.deleteMsg(bot, tgMsg);
         msgTools.sendMessage(bot, actualMsg, finalMessage, -1);
     });
+}
+
+// gid generator - randomString(16)
+function randomString(len:number) {
+    var str = "";
+    for (var i=0; i < len; i++) {
+        var r = Math.random() * 62 << 0;
+        str += String.fromCharCode(r += r > 9 ? r < 36 ? 55 : 61 : 48).toLowerCase();
+    }
+    return str;
 }
