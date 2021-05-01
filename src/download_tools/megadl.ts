@@ -30,6 +30,7 @@ export async function megaWrapper(url: string, bot: TelegramBot, tgMsg: Telegram
         tgChatId: 0,
         tgFromId: 0,
         tgMessageId: 0,
+        isDuplicateMirror: 0,
         tgRepliedUsername: '',
         isDownloadAllowed: 1,
         isDownloading: true,
@@ -127,7 +128,13 @@ function downloadFiles(object: any, path: string) {
         }
     } else {
 
-        let downloadStream = object.download();
+        let downloadStream = object.download( { forceHttps: true } )
+                .on('error', (err:Error) => {
+                    console.error(err);
+                    if (err.message != "You can't download past the end of the file.") {
+                        msgTools.sendMessage(mainObject.bot, mainObject.actualMsg, 'Error: ' + err.message);
+                    }
+                  });
 
         //targetStat.file[mainObject.totalFiles]={ name: object.name, parent: mainObject.dirCount, size: object.size, isDownloaded: false };
         fileStats[mainObject.totalFiles]= { name: object.name, size:object.size, transferred:0, isDownloaded: false };
