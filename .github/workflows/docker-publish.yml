@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - if: github.event.pusher.name != 'arghyac35'
+      - if: github.event.pusher.name != 'hsj51'
         name: Check last commit author
         run: echo "Author mismatch existing..." && exit 1
 
